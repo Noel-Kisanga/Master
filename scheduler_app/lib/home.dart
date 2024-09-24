@@ -1,5 +1,5 @@
+
 import 'package:flutter/material.dart';
-import 'package:gallery_picker/gallery_picker.dart';
 import 'package:scheduler_app/event.dart';
 import 'package:scheduler_app/gallery.dart';
 import 'package:scheduler_app/takephoto.dart';
@@ -23,7 +23,6 @@ class _HomeState extends State<Home> {
   DateTime? _selectedDay; // Currently selected day
   DateTime? _rangeStart; // Start of the selected range
   DateTime? _rangeEnd; // End of the selected range
-  List<MediaFile> _selectedFile = [];
 
   @override
   void initState() {
@@ -322,19 +321,16 @@ class _HomeState extends State<Home> {
             ),
             SimpleDialogOption(
               onPressed: () async {
-                List<MediaFile> mediaFile = await GalleryPicker.pickMedia(
-                  context: context, 
-                  singleMedia: true
-                ) ??
-                [];
-                setState(() {
-                  _selectedFile = mediaFile;
-                });
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => const Gallery())
+                );
               },
               child: const Text('Choose from Gallery'),
             ),
             SimpleDialogOption(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
                 Navigator.push(
                   context,
