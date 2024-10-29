@@ -13,6 +13,7 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
   // Holds the list of available cameras and a controller for managing the camera.
   List<CameraDescription> cameras = [];
   CameraController? cameraController;
+  late XFile pic;
 
   // Handles changes in the app's lifecycle state (e.g., background/foreground).
   @override
@@ -73,7 +74,7 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
             IconButton(
               onPressed: () async {
                 // Captures a picture when the camera button is pressed.
-                XFile pic = await cameraController!.takePicture();
+                pic = await cameraController!.takePicture();
                 
                 // Stores the picture in the gallery using the Gal package.
                 Gal.putImage(
@@ -119,5 +120,27 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
         (Object e) {}, // Handles any errors that occur during initialization.
       );
     }
+  }
+
+  // Displays the thumbnail of the captured image or video
+  Widget _thumbnailWidget(){
+    return Expanded(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            if (pic == null){
+              Container()
+            } else{
+              SizedBox(
+                width: 64.0,
+                height: 64.0,
+              )
+            }
+          ]
+        )
+      )
+    )
   }
 }
