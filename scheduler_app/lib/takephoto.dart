@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:camera/camera.dart';  // Imports the camera package for camera functionalities.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'; // Imports the Flutter Material package for UI components.
 import 'package:gal/gal.dart'; // Imports the gal package, which appears to handle image gallery functions.
 
@@ -13,7 +15,7 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
   // Holds the list of available cameras and a controller for managing the camera.
   List<CameraDescription> cameras = [];
   CameraController? cameraController;
-  late XFile pic;
+  XFile? pic;
 
   // Handles changes in the app's lifecycle state (e.g., background/foreground).
   @override
@@ -78,15 +80,19 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
                 
                 // Stores the picture in the gallery using the Gal package.
                 Gal.putImage(
-                  pic.path,
+                  pic!.path,
                 );
+
+                setState(() {
+                });
               },
               iconSize: 100, // Large camera icon size.
               icon: const Icon(
                 Icons.camera, // Red camera icon.
                 color: Colors.red,
               )
-            )
+            ),
+            _thumbnailWidget(),
           ],
         )
       ),
@@ -130,17 +136,73 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            if (pic == null){
+            if (pic == null)
               Container()
-            } else{
+            else
               SizedBox(
                 width: 64.0,
                 height: 64.0,
-              )
-            }
-          ]
-        )
-      )
-    )
+                child: Image.file(
+                  File(pic!.path),
+                  fit: BoxFit.cover,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _modeControlRowWidget(){
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.flash_on),
+              color: Colors.blue,
+              onPressed: cameraController != null ? onFlashModeButtonPressed : null,  
+            ),
+            ...!kIsWeb
+              ? <Widget>[
+                  IconButton(
+                    icon: const Icon(Icons.exposure),
+                    color: Colors.blue,
+                    onPressed: cameraController != null
+                      ? onExposureModeButtonPressed
+                      : null, 
+                  ),
+                  IconButton( 
+                    icon: const Icon(Icons.filter_center_focus),
+                    color: Colors.blue,
+                    onPressed: cameraController != null ? onFocusModeButtonPressed : null, 
+                  )
+              ]
+              : <Widget>[],
+            IconButton(
+              onPressed: cameraController != null 
+                ? onCaptureOrientationLockButtonPressed
+                : null, 
+              icon: Icon(cameraController?.value.isCaptureOrientationLocked ?? false
+                  ? Icons.screen_lock_rotation
+                  : Icons.screen_rotation),
+              color: Colors.blue,
+            ),
+          ],
+        ),
+        _flashModeControlRowWidget(),
+        _exposureModeControlRowWidget(),
+        _focusModeControlRowWidget(),
+      ],
+    );
+  }
+  
+  Widget _flashModeControlRowWidget() {}
+  
+  Widget _exposureModeControlRowWidget() {}
+  
+  Widget _focusModeControlRowWidget() {}
+
+  
 }
