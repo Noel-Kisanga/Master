@@ -99,11 +99,15 @@ class _HomeState extends State<Home> {
   final _titleController = TextEditingController();
   // TextEditingController for managing the description input in the dialog
   final _descriptionController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _locationController = TextEditingController();
 
   /// Clears the text fields in the dialog.
   void clearController() {
     _titleController.clear();
     _descriptionController.clear();
+    _notesController.clear();
+    _locationController.clear();
   }
 
   @override
@@ -354,9 +358,13 @@ class _HomeState extends State<Home> {
   /// Displays a dialog for the user to input event details.
   /// 
   AlertDialog _dialogWidget(BuildContext context) {
+
+    TimeOfDay? startTime;
+    TimeOfDay? endTime;
+
     return AlertDialog.adaptive(
       scrollable: true,
-      title: const Text('Event name'),
+      title: const Text('Add Event'),
       content: Padding(
         padding: const EdgeInsets.all(8),
         child: Column(
@@ -367,8 +375,61 @@ class _HomeState extends State<Home> {
             ),
             TextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(helperText: 'ride'),
+              decoration: const InputDecoration(helperText: 'Description'),
             ),
+            TextField(
+              controller: _notesController,
+              decoration: const InputDecoration(helperText: 'Notes'),
+            ),
+            TextField(
+              controller: _locationController,
+              decoration: const InputDecoration(helperText: 'Location'),
+
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final TimeOfDay? pickTime = await showTimePicker(
+                        context: context, 
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if(pickTime != null){
+                        startTime = pickTime;
+                      }
+                    }, 
+                    child: Text(
+                      // ignore: unnecessary_null_comparison
+                      startTime != null
+                        ? 'Start: ${startTime.format(context)}'
+                        : 'Select Start Time',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final TimeOfDay? pickTime = await showTimePicker(
+                        context: context, 
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if(pickTime != null){
+                        endTime = pickTime;
+                      }
+                    }, 
+                    child: Text(
+                      // ignore: unnecessary_null_comparison
+                      endTime != null
+                        ? 'End: ${endTime.format(context)}'
+                        : 'Select End Time',
+                    ),
+                  ),
+                ),
+              ],
+            )
           ],
         ),
       ),
