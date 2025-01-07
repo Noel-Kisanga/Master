@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:scheduler_app/event.dart';
+import 'package:scheduler_app/EventDetails.dart';
 import 'package:scheduler_app/gallery.dart';
 import 'package:scheduler_app/takephoto.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -338,7 +339,10 @@ class _HomeState extends State<Home> {
                 Navigator.pop(ctx);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => _dialogWidget(context))
+                  MaterialPageRoute(
+                    builder: (context) => EventDetails(
+                      selectedDay: DateTime.now(),
+                    ))
                 );
               },
               child: const Text('Add manually'),
@@ -355,110 +359,11 @@ class _HomeState extends State<Home> {
     );
   }
 
-  /// Displays a dialog for the user to input event details.
-  /// 
-  AlertDialog _dialogWidget(BuildContext context) {
-
-    TimeOfDay? startTime;
-    TimeOfDay? endTime;
-
-    return AlertDialog.adaptive(
-      scrollable: true,
-      title: const Text('Add Event'),
-      content: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(helperText: 'Title'),
-            ),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(helperText: 'Description'),
-            ),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(helperText: 'Notes'),
-            ),
-            TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(helperText: 'Location'),
-
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final TimeOfDay? pickTime = await showTimePicker(
-                        context: context, 
-                        initialTime: TimeOfDay.now(),
-                      );
-                      if(pickTime != null){
-                        startTime = pickTime;
-                      }
-                    }, 
-                    child: Text(
-                      // ignore: unnecessary_null_comparison
-                      startTime != null
-                        ? 'Start: ${startTime.format(context)}'
-                        : 'Select Start Time',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final TimeOfDay? pickTime = await showTimePicker(
-                        context: context, 
-                        initialTime: TimeOfDay.now(),
-                      );
-                      if(pickTime != null){
-                        endTime = pickTime;
-                      }
-                    }, 
-                    child: Text(
-                      // ignore: unnecessary_null_comparison
-                      endTime != null
-                        ? 'End: ${endTime.format(context)}'
-                        : 'Select End Time',
-                    ),
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
-      actions: [
-        ElevatedButton(
-            onPressed: () {
-              // Add the new event to the events map
-              events.addAll({
-                _selectedDay!: [
-                  ..._selectedEvents.value,
-                  Event(
-                      title: _titleController.text,
-                      description: _descriptionController.text)
-                ]
-              });
-              _selectedEvents.value = _getEventsForDay(_selectedDay!); // Update the events for the selected day
-              clearController(); // Clear the input fields
-              Navigator.pop(context); // Close the dialog
-            },
-            child: const Text('Submit'))
-      ],
-    );
-  }
-
   /// Loads previously saved events (currently hardcoded).
   void loadPreviousEvents() {
     events = {
-      _selectedDay!: [Event(title: '', description: '')],
-      _selectedDay!: [Event(title: '', description: '')]
+      _selectedDay!: [Event(title: '', description: '', notes: '', location: '', guests: '')],
+      _selectedDay!: [Event(title: '', description: '', location: '', notes: '', guests: '')],
     };
   }
 

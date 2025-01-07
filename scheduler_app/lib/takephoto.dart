@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:camera/camera.dart';  // Imports the camera package for camera functionalities.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'; // Imports the Flutter Material package for UI components.
-import 'package:gal/gal.dart'; // Imports the gal package, which appears to handle image gallery functions.
+import 'package:gal/gal.dart';
+import 'package:scheduler_app/FullScreenImage.dart'; // Imports the gal package, which appears to handle image gallery functions.
 
 class TakePhoto extends StatefulWidget {
   const TakePhoto({super.key}); // A StatefulWidget for taking a photo.
@@ -175,13 +176,23 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver, Tick
             if (pic == null)
               Container()
             else
-              SizedBox(
-                width: 64.0,
-                height: 64.0,
-                child: Image.file(
-                  File(pic!.path),
-                  fit: BoxFit.cover,
-                ),
+              GestureDetector(
+                onTap: (){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FullscreenImage(imageFile: File(pic!.path)),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 64.0,
+                  height: 64.0,
+                  child: Image.file(
+                    File(pic!.path),
+                    fit: BoxFit.cover,
+                    ),
+                  ),
               ),
           ],
         ),
