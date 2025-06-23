@@ -17,8 +17,8 @@ class _TakePhotoState extends State<TakePhoto> with WidgetsBindingObserver, Tick
   List<CameraDescription> cameras = [];
   CameraController? cameraController;
   XFile? pic;
-  double _minAvailableExposureOffset = 0.0;
-  double _maxAvailableExposureOffset = 0.0;
+  final double _minAvailableExposureOffset = 0.0;
+  final double _maxAvailableExposureOffset = 0.0;
   double _currentExposureOffset = 0.0;
   late AnimationController _flashModeControlRowAnimationController;
   late Animation<double> _flashModeControlRowAnimation;

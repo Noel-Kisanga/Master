@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:scheduler_app/event.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'event_storage.dart';
+
 
 class EventDetails extends StatefulWidget {
   final DateTime selectedDay;
-  
-  final dynamic eventLoader; // Required parameter
+  final Map<DateTime, List<Event>> events;
 
   const EventDetails({
     super.key, 
-    required this.selectedDay, this.eventLoader,
+    required this.selectedDay,
+    required this.events,
   });
 
   @override
@@ -16,11 +19,10 @@ class EventDetails extends StatefulWidget {
 }
 
 class _EventDetailsState extends State<EventDetails> {
+
+  late final ValueNotifier<List<Event>> _selectedEvents;
   TimeOfDay? startTime;
   TimeOfDay? endTime;
-
-  final Map<DateTime, List<Event>> events = {}; // Stores the events by date
-  late final ValueNotifier<List<Event>> _selectedEvents;
 
   // TextEditingControllers for managing input fields
   final TextEditingController _titleController = TextEditingController();
@@ -47,7 +49,8 @@ class _EventDetailsState extends State<EventDetails> {
   }
 
   List<Event> _getEventsForDay(DateTime day) {
-    return events[day] ?? [];
+    final normalizedDay = normalizeDate(day);
+    return widget.events[normalizedDay] ?? [];
   }
 
   /// Clears the text fields in the dialog.
@@ -168,9 +171,10 @@ class _EventDetailsState extends State<EventDetails> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   _addEvent();
+                  await EventStorage.saveEvents(widget.events); // Assuming you have a method to save events
                   Navigator.of(context).pop();
                 }
               },
@@ -184,26 +188,33 @@ class _EventDetailsState extends State<EventDetails> {
 
   /// Adds a new event to the events map
   void _addEvent() {
-    final newEvent = Event(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      notes: _notesController.text.trim(),
-      location: _locationController.text.trim(),
-      guests: _guestController.text.trim(),
-      startTime: startTime,
-      endTime: endTime,
-    );
+    try{
+      final newEvent = Event(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        notes: _notesController.text.trim(),
+        location: _locationController.text.trim(),
+        guests: _guestController.text.trim(),
+        startTime: startTime,
+        endTime: endTime,
+      );
 
-    setState(() {
-      if (events.containsKey(widget.selectedDay)) {
-        events[widget.selectedDay]!.add(newEvent);
-      } else {
-        events[widget.selectedDay] = [newEvent];
-      }
-      _selectedEvents.value = _getEventsForDay(widget.selectedDay);
-    });
+      final normalizedDay = normalizeDate(widget.selectedDay);
 
-    clearControllers();
+      setState(() {
+        if (widget.events.containsKey(normalizedDay)) {
+          widget.events[normalizedDay]!.add(newEvent);
+        } else {
+          widget.events[normalizedDay] = [newEvent];
+        }
+        _selectedEvents.value = widget.events[normalizedDay]!;
+      });
+
+      clearControllers();
+    } catch (e, stackTrace){
+      print('Error adding event: $e');
+      print('StackTrace: $stackTrace');
+    }
   }
 
   @override
@@ -231,21 +242,32 @@ class _EventDetailsState extends State<EventDetails> {
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              return ListTile(
-                title: Text(event.title),
-                subtitle: Text(event.startTime as String),
-                trailing: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (event.startTime != null)
-                      Text('Start: ${event.startTime!.format(context)}'),
-                    if (event.endTime != null)
-                      Text('End: ${event.endTime!.format(context)}'),
-                  ],
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Description: ${event.description}'),
+                      Text('Notes: ${event.notes}'),
+                      Text('Location: ${event.location}'),
+                      Text('Attendants: ${event.guests}'),
+                      if (event.startTime != null && event.endTime != null)
+                        Text(
+                          'Time: ${event.startTime!.format(context)} - ${event.endTime!.format(context)}',
+                        ),
+                    ],
+                  ),
                 ),
-                onTap: () {
-                  // Handle event tap, e.g., show details or edit
-                },
               );
             },
           );

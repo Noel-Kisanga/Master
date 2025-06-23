@@ -1,9 +1,13 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:scheduler_app/event.dart';
 import 'package:scheduler_app/EventDetails.dart';
+import 'package:scheduler_app/event_storage.dart';
 import 'package:scheduler_app/gallery.dart';
 import 'package:scheduler_app/takephoto.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 
@@ -17,8 +21,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   late final ValueNotifier<List<Event>> _selectedEvents;
+  Map<DateTime, List<Event>> events = {};
   CalendarFormat _calendarFormat = CalendarFormat.month; // Default calendar format
-  Map<DateTime, List<Event>> events = {}; // Stores the events by date
   RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff; // Range selection mode for calendar
   DateTime _focusedDay = DateTime.now(); // Currently focused day in the calendar
   DateTime? _selectedDay; // Currently selected day
@@ -26,12 +30,19 @@ class _HomeState extends State<Home> {
   DateTime? _rangeEnd; // End of the selected range
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
-
     _selectedDay = _focusedDay;
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!)); // Initialize selected events for the day
-    loadPreviousEvents(); // Load previously saved events
+    _loadEvents(); // Load previously saved events
+  }
+
+  Future<void> _loadEvents() async {
+    final loadedEvents = await EventStorage.loadEvents();
+    setState(() {
+      events = loadedEvents; // Set the loaded events to the state
+      _selectedEvents.value = _getEventsForDay(_selectedDay!); // Update selected events for the initially selected day
+    });
   }
 
   @override
@@ -40,9 +51,14 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  DateTime normalizeDate(DateTime date){
+    return DateTime(date.year, date.month, date.day);
+  }
+
   /// Fetches the events for the specified day.
   List<Event> _getEventsForDay(DateTime day) {
-    return events[day] ?? []; // Return events for the day or an empty list if none exist
+    final normalizedDay = normalizeDate(day);
+    return events[normalizedDay] ?? []; // Return events for the day or an empty list if none exist
   }
 
   /// Generates a list of all days between the start and end date.
@@ -144,15 +160,15 @@ class _HomeState extends State<Home> {
                     color: Theme.of(context).colorScheme.onInverseSurface,
                   ),
                 ),
-                firstDay: DateTime.utc(2000, 12, 31), // Start date of the calendar
-                lastDay: DateTime.utc(2030, 01, 01), // End date of the calendar
+                firstDay: DateTime.utc(1900, 12, 31), // Start date of the calendar
+                lastDay: DateTime.utc(2050, 12, 31), // End date of the calendar
                 focusedDay: _focusedDay,
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 rangeStartDay: _rangeStart,
                 rangeEndDay: _rangeEnd,
                 calendarFormat: _calendarFormat,
                 rangeSelectionMode: _rangeSelectionMode,
-                eventLoader: _getEventsForDay, // Load events for the currently displayed day
+                eventLoader: (day) => _getEventsForDay(day), // Load events for the currently displayed day
                 startingDayOfWeek: StartingDayOfWeek.monday, // Set the starting day of the week
                 calendarStyle: CalendarStyle(
                   markerDecoration: BoxDecoration(
@@ -194,85 +210,90 @@ class _HomeState extends State<Home> {
                   builder: (context, value, _) {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: value
-                          .map((e) => Card(
-                              color: Colors.white,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(4),
+                      children: (value as List)
+                        .map<Widget>((e) => GestureDetector(
+                          onTap: () {
+                          showDialog(
+                            context: context, 
+                            builder: (context) => AlertDialog(
+                            title: Text(e.title),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                              Text('Description: ${e.description}'),
+                              Text('Notes: ${e.notes}'),
+                              Text('Location: ${e.location}'),
+                              Text('Guests: ${e.guests}'),
+                              if (e.startTime != null && e.endTime != null)
+                                Text('Time: ${e.startTime!.format(context)} - ${e.endTime!.format(context)}'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  textStyle: Theme.of(context).textTheme.labelMedium
                                 ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Icon(
-                                          Icons.check_box,
-                                          color: Theme.of(context)
-                                              .buttonTheme
-                                              .colorScheme!
-                                              .secondary,
-                                        ),
-                                        SizedBox(
-                                          child: Column(
-                                            children: [
-                                              SizedBox(
-                                                child: Column(
-                                                  children: [
-                                                    Text(
-                                                      maxLines: 1,
-                                                      style: const TextStyle(
-                                                          fontWeight: FontWeight.w500,
-                                                          fontSize: 16),
-                                                      e.title,
-                                                    ),
-                                                    Padding(
-                                                      padding: const EdgeInsets.all(8.0),
-                                                      child: Text.rich(
-                                                        TextSpan(
-                                                          children: [
-                                                            TextSpan(
-                                                              style: const TextStyle(
-                                                                  color: Colors.blue),
-                                                              text: '${_selectedDay!.hour}: ${_selectedDay!.minute}: ',
-                                                            ),
-                                                            TextSpan(
-                                                              text: e.description,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const Icon(Icons.share),
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 10),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          textBtn(context, 'Search ride', () {}),
-                                          textBtn(context, 'Cancel Event', () {
-                                            setState(() {
-                                              _selectedEvents.value.clear();
-                                              _getEventsForDay;
-                                            });
-                                          }),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                child: const Text('Edit'),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _showEditEventDialog(e, _selectedDay!);
+                                },
                               ),
-                            ))
-                          .toList(),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  textStyle: Theme.of(context).textTheme.labelMedium
+                                ),
+                                onPressed: () async {
+                                  final normalizedDay = normalizeDate(_selectedDay!);
+                                  setState(() {
+                                    events[normalizedDay]?.remove(e);
+                                    if (events[normalizedDay]?.isEmpty ?? false){
+                                      events.remove(normalizedDay); // Remove the day if no events left
+                                    }
+                                    _selectedEvents.value = _getEventsForDay(_selectedDay!); // Remove the event from the list
+                                  });
+                                  await EventStorage.saveEvents(events);
+                                  Navigator.pop(context); // Close the dialog
+                                }, 
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                            ),
+                          );
+                          },
+                          child: Card(
+                          color: Colors.white,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+                            decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                              e.title, 
+                              style: const TextStyle(
+                                fontSize: 18, 
+                                fontWeight: FontWeight.bold,
+                              ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text('Description: ${e.description}'),
+                              Text('Notes: ${e.notes}'),
+                              Text('Location: ${e.location}'),
+                              Text('Attendants: ${e.guests}'),
+                              if (e.startTime != null && e.endTime != null)
+                              Text(
+                                'Time: ${e.startTime!.format(context)} - ${e.endTime!.format(context)}',
+                              ),
+                            ],
+                            ),
+                          ),
+                          ),
+                        ))
+                        .toList(),
                     );
                   },
                   valueListenable: _selectedEvents, // Listens for changes to the selected events
@@ -341,7 +362,8 @@ class _HomeState extends State<Home> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => EventDetails(
-                      selectedDay: DateTime.now(),
+                      selectedDay: _selectedDay!, 
+                      events: events,
                     ))
                 );
               },
@@ -359,17 +381,119 @@ class _HomeState extends State<Home> {
     );
   }
 
-  /// Loads previously saved events (currently hardcoded).
-  void loadPreviousEvents() {
-    events = {
-      _selectedDay!: [Event(title: '', description: '', notes: '', location: '', guests: '')],
-      _selectedDay!: [Event(title: '', description: '', location: '', notes: '', guests: '')],
-    };
-  }
 
-  // Future method to load saved events from persistent storage (commented out)
-  // _checkOnboardingCompleted() async {
-  // SharedPreferences prefs = await SharedPreferences.getInstance();
-  // return prefs.getStringList('key');
-  //}
+void _showEditEventDialog(Event event, DateTime eventDay) {
+  final titleController = TextEditingController(text: event.title);
+  final descriptionController = TextEditingController(text: event.description);
+  final notesController = TextEditingController(text: event.notes);
+  final locationController = TextEditingController(text: event.location);
+  final guestsController = TextEditingController(text: event.guests);
+  TimeOfDay? startTime = event.startTime;
+  TimeOfDay? endTime = event.endTime;
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Edit Event'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(labelText: 'Notes'),
+            ),
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(labelText: 'Location'),
+            ),
+            TextField(
+              controller: guestsController,
+              decoration: const InputDecoration(labelText: 'Guests'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final TimeOfDay? picked = await showTimePicker(
+                        context: context,
+                        initialTime: startTime ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          startTime = picked;
+                        });
+                      }
+                    },
+                    child: Text(
+                      startTime != null
+                          ? 'Start: ${startTime!.format(context)}'
+                          : 'Select Start Time',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final TimeOfDay? picked = await showTimePicker(
+                        context: context,
+                        initialTime: endTime ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          endTime = picked;
+                        });
+                      }
+                    },
+                    child: Text(
+                      endTime != null
+                          ? 'End: ${endTime!.format(context)}'
+                          : 'Select End Time',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            setState(() {
+              event.title = titleController.text;
+              event.description = descriptionController.text;
+              event.notes = notesController.text;
+              event.location = locationController.text;
+              event.guests = guestsController.text;
+              event.startTime = startTime;
+              event.endTime = endTime;
+            });
+            _selectedEvents.value = _getEventsForDay(eventDay);
+            await EventStorage.saveEvents(events); // Save the updated events
+            Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+
 }
