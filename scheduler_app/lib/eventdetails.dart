@@ -187,7 +187,7 @@ class _EventDetailsState extends State<EventDetails> {
   }
 
   /// Adds a new event to the events map
-  void _addEvent() {
+  Future<void> _addEvent() async {
     try{
       final newEvent = Event(
         title: _titleController.text.trim(),
@@ -209,6 +209,7 @@ class _EventDetailsState extends State<EventDetails> {
         }
         _selectedEvents.value = widget.events[normalizedDay]!;
       });
+      await EventStorage.saveEvents(widget.events); // Save the updated events
 
       clearControllers();
     } catch (e, stackTrace){

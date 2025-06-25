@@ -57,8 +57,9 @@ class _HomeState extends State<Home> {
 
   /// Fetches the events for the specified day.
   List<Event> _getEventsForDay(DateTime day) {
+    print('Loading events for day: ${events[normalizeDate(day)]}');
     final normalizedDay = normalizeDate(day);
-    return events[normalizedDay] ?? []; // Return events for the day or an empty list if none exist
+    return events[day] ?? []; // Return events for the day or an empty list if none exist
   }
 
   /// Generates a list of all days between the start and end date.
@@ -84,9 +85,9 @@ class _HomeState extends State<Home> {
       setState(() {
         _selectedDay = selectedDay;
         _focusedDay = focusedDay;
-        _rangeStart = null;
-        _rangeEnd = null;
-        _rangeSelectionMode = RangeSelectionMode.toggledOff; // Disable range selection
+        //_rangeStart = null;
+       // _rangeEnd = null;
+        //_rangeSelectionMode = RangeSelectionMode.toggledOff; // Disable range selection
       });
       _selectedEvents.value = _getEventsForDay(selectedDay); // Update the selected events
     }
@@ -358,14 +359,18 @@ class _HomeState extends State<Home> {
             SimpleDialogOption(
               onPressed: () async {
                 Navigator.pop(ctx);
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => EventDetails(
                       selectedDay: _selectedDay!, 
                       events: events,
-                    ))
+                    ),
+                  ),
                 );
+                setState(() { 
+                  _selectedEvents.value = _getEventsForDay(_selectedDay!);// Refresh the selected events after adding a new event
+                });
               },
               child: const Text('Add manually'),
             ),
